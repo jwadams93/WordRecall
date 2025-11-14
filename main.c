@@ -83,6 +83,13 @@ int buildWordSearchStructure() {
 
 int main() {
 
+  //TODO 
+  //  Add logic to handle user input 
+  //  Add timer that will automatically end the game 
+  //    when it runs out of time
+  //  Add logic to score player (take each entered word and validate its in the wordSearchStructure)
+  //  Add logic display the score (Maybe use cool ascii art thing) and save score to DB file 
+
   buildWordSearchStructure();
 
   return 0;
