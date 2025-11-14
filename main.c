@@ -1,5 +1,73 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+
+
+//Linked list
+typedef struct Node {
+  char *word;
+  struct Node *next;
+} Node;
+
+Node* alphabet[26] = {NULL};
+
+Node *createNode(char *word) {
+  Node *newNode = (Node *)malloc(sizeof(Node));
+  newNode->word = strdup(word);
+  newNode->next = NULL;
+
+  return newNode;
+}
+
+int buildWordSearchStructure() {
+
+  //file input text
+  FILE *file = fopen("words_alpha.txt", "r");
+  char buffer[35];
+
+  if (file == NULL) {
+    printf("Failed to open file.\n");
+    return 1;
+  }
+
+  Node *temp = createNode(" ");
+  char currentChar = 'a';
+  int arrPos = 0;
+
+  while (fgets(buffer, sizeof(buffer), file) != NULL) {
+
+      printf("Read: %s\n", buffer);
+      printf("First position of buffer: %c\n", buffer[0]);
+      //printf("buffer[0] = '%c' (ASCII: %d)\n", buffer[0], buffer[0]);
+
+    if (buffer[0] == currentChar) {
+      Node *nextNode = createNode(buffer);
+      printf("Created new node with word: %s in the %d index of the alphabet array\n", nextNode->word, arrPos);
+      temp = nextNode->next;
+      alphabet[arrPos] = nextNode;
+    } else {
+      //New char, need to load these into next aray index
+      currentChar = buffer[0];
+      //calculating the position by subtracting a.
+      //ASCII val works out to a-a = 0, b-a = 1, etc
+      arrPos = buffer[0] - 'a';
+
+      Node *nextNode = createNode(buffer);
+      printf("Created new node with word: %s in the %d index of the alphabet array\n", nextNode->word, arrPos);
+      temp = nextNode->next;
+      alphabet[arrPos] = nextNode;
+    }
+  }
+
+  if(feof(file)) {
+    printf("End of file reached.\n");
+  } else if (ferror(file)) {
+    printf("An error occured.\n");
+  }
+  
+  fclose(file);
+  return 0;
+}
 
 /**
 *
@@ -14,43 +82,8 @@
 **/ 
 
 int main() {
-  int alphabet[26] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'};
-  
+
   buildWordSearchStructure();
-}
 
-//Linked list
-typedef struct Node {
-  //Word
-  char *word;
-  struct Node *next;
-} Node;
-
-int buildWordSearchStructure() {
-
-  int wordC = 0;
-
-  //file input text
-  FILE *file = fopen("words_alpha.txt", "r");
-  char buffer[35];
-
-  if (file == NULL) {
-    printf("Failed to open file.\n");
-    return 1; 
-  }
-
-  while (fgets(buffer, sizeof(buffer), file) != NULL) {
-    printf("Read: %s", buffer);
-    wordC++;
-  }
-
-  if(feof(file)) {
-    printf("End of file reached.\n");
-    printf("Found %d words\n", wordC);
-  } else if (ferror(file)) {
-    printf("An error occured.\n");
-  }
-  
-  fclose(file);
   return 0;
 }
