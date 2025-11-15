@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <pthread.h>
 
 //Linked list
 typedef struct Node {
@@ -10,6 +11,8 @@ typedef struct Node {
 } Node;
 
 Node* alphabet[26] = {NULL};
+int timeLeft = 60;
+int running = 1;
 
 Node *createNode(char *word) {
   Node *newNode = (Node *)malloc(sizeof(Node));
@@ -97,6 +100,43 @@ void buildWithSpinner() {
   printf("\r######## Database built! ########\n");
 }
 
+void* timerThread(void* arg) {
+  while (timeLeft > 0 && running) {
+    sleep(1);
+    timeLeft--;
+  }
+  running = 0;
+  return NULL;
+}
+
+void displayTimer() {
+  pthread_t timer;
+  char input[100];
+
+  printf("\nYou have 60 seconds... GO!\n");
+  pthread_create(&timer, NULL, timerThread, NULL);
+
+  while (running) {
+    printf("%2d: ", timeLeft);
+    fflush(stdout);
+
+    if(fgets(input, sizeof(input), stdin) != NULL) {
+      input[strcspn(input, "\n")] = 0;
+      if (strlen(input) > 0 && running) {
+        //check word?
+      }
+    }
+
+    if (timeLeft <= 0) {
+      break;
+    }
+  }
+  
+  running = 0;
+  pthread_join(timer, NULL);
+  printf("\nTimes up!\n");
+  return 0;
+}
 /**
 *
 * I will want to take in user input
@@ -111,15 +151,22 @@ void buildWithSpinner() {
 
 int main() {
   srand(time(NULL));
+
   //TODO 
   //  Add logic to handle user input 
   //  Add timer that will automatically end the game 
   //    when it runs out of time
   //  Add logic to score player (take each entered word and validate its in the wordSearchStructure)
   //  Add logic display the score (Maybe use cool ascii art thing) and save score to DB file 
-  buildWithSpinner();
+  //
+  //  Add logic to keep track of valid guesses and check them to prevent multiple of the same guess
   buildWordSearchStructure();
+  buildWithSpinner();
   printf("\nYour letter is.....\n");
-  printf("\n%c!\n", getRandLetter());
+  usleep(900000);
+  printf("\n\t%c\n", getRandLetter());
+  
+  displayTimer();
+
   return 0;
 }
