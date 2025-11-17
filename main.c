@@ -3,6 +3,7 @@
 #include <string.h>
 #include <time.h>
 #include <pthread.h>
+#include <stdbool.h>
 
 //Linked list
 typedef struct Node {
@@ -13,6 +14,8 @@ typedef struct Node {
 Node* alphabet[26] = {NULL};
 int timeLeft = 60;
 int running = 1;
+char randomLetter;
+int count = 0;
 
 Node *createNode(char *word) {
   Node *newNode = (Node *)malloc(sizeof(Node));
@@ -33,21 +36,18 @@ int buildWordSearchStructure() {
     return 1;
   }
 
-  Node *temp = createNode(" ");
-  char currentChar = 'a';
+  Node *currentNode;
+  char currentChar;
   int arrPos = 0;
 
   while (fgets(buffer, sizeof(buffer), file) != NULL) {
 
-      //printf("Read: %s\n", buffer);
-      //printf("First position of buffer: %c\n", buffer[0]);
-      //printf("buffer[0] = '%c' (ASCII: %d)\n", buffer[0], buffer[0]);
-
     if (buffer[0] == currentChar) {
       Node *nextNode = createNode(buffer);
       //printf("Created new node with word: %s in the %d index of the alphabet array\n", nextNode->word, arrPos);
-      temp = nextNode->next;
-      alphabet[arrPos] = nextNode;
+      currentNode->next = nextNode;
+      currentNode = nextNode;
+      //alphabet[arrPos] = nextNode;
     } else {
       //New char, need to load these into next aray index
       currentChar = buffer[0];
@@ -55,10 +55,9 @@ int buildWordSearchStructure() {
       //ASCII val works out to a-a = 0, b-a = 1, etc
       arrPos = buffer[0] - 'a';
 
-      Node *nextNode = createNode(buffer);
+      currentNode = createNode(buffer);
       //printf("Created new node with word: %s in the %d index of the alphabet array\n", nextNode->word, arrPos);
-      temp = nextNode->next;
-      alphabet[arrPos] = nextNode;
+      alphabet[arrPos] = currentNode;
     }
   }
 
@@ -80,8 +79,8 @@ char getRandLetter() {
 
   // mod the random number to get a number between [0, 26] (rand % (122-97+1 = 26))
   // then, adding the lower_bound shifts it to [97, 123]
-  return rand() % (upper_bound - lower_bound + 1) + lower_bound;
-
+  randomLetter = rand() % (upper_bound - lower_bound + 1) + lower_bound;
+  return randomLetter; 
 }
 
 void buildWithSpinner() {
@@ -109,6 +108,29 @@ void* timerThread(void* arg) {
   return NULL;
 }
 
+void search(struct Node* head, char* usersWord) {
+  struct Node* current = head;
+  printf("Okay well the first word is uh.. %s\n", head->word);
+  printf("And the word we passed in is %s and we're gonna compare it to %s\n", usersWord, current->word);
+  while (current != NULL) {
+    //printf("The current word is %s", current->word);
+    if (strcmp(current->word, usersWord) == 0) {
+      printf("holy shit IT WORKED your word was VALID\n");
+      count++;
+    }
+    current = current->next;
+  }
+  printf("okay so we looked for the word it had the right starting letter but we couldn't find it\n");
+}
+
+char* trimWhitespace(char* userInput) {
+  char* end = userInput + strlen(userInput) - 1;
+  while (end > userInput && isspace(*end)) {
+    *end = '\0';
+    end--;
+  }
+}
+
 void displayTimer() {
   pthread_t timer;
   char input[100];
@@ -120,10 +142,26 @@ void displayTimer() {
     printf("%2d: ", timeLeft);
     fflush(stdout);
 
-    if(fgets(input, sizeof(input), stdin) != NULL) {
+    if(fgets(input, sizeof(input), stdin) != NULL && running) {
+      //fgets will include a \n in the buffer, following line removes it
       input[strcspn(input, "\n")] = 0;
       if (strlen(input) > 0 && running) {
-        //check word?
+        char *userInput = strtok(input, " ");
+        trimWhitespace(userInput);
+
+        while (userInput != NULL) {
+          printf("TEST: found user input %s\n", userInput);
+          if (userInput[0] == randomLetter) {
+            //check the db
+            printf("TEST: Word began with the right letter. Checkin' the ol db\n");
+            printf("TEST: lets see Paul Allen's singley linked list: %s", alphabet[randomLetter - 'a']->word);
+            search(alphabet[randomLetter - 'a'], userInput); 
+          } else {
+            // on to the next word
+            printf("TEST: Word didn't begin with right letter. Not gonna do a damn thing.\n");
+          }
+          userInput = strtok(NULL, " ");
+        }
       }
     }
 
@@ -137,6 +175,8 @@ void displayTimer() {
   printf("\nTimes up!\n");
   return 0;
 }
+
+
 /**
 *
 * I will want to take in user input
@@ -168,5 +208,5 @@ int main() {
   
   displayTimer();
 
-  return 0;
-}
+  printf("Looks like you typed %d words\n", count);
+  return 0; }
