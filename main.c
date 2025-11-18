@@ -3,7 +3,8 @@
 #include <string.h>
 #include <time.h>
 #include <pthread.h>
-#include <stdbool.h>
+#include <ctype.h>
+#include <unistd.h>
 
 //Linked list
 typedef struct Node {
@@ -25,6 +26,14 @@ Node *createNode(char *word) {
   return newNode;
 }
 
+char* trimWhitespace(char* userInput) {
+  char* end = userInput + strlen(userInput) - 1;
+  while (end > userInput && isspace(*end)) {
+    *end = '\0';
+    end--;
+  }
+}
+
 int buildWordSearchStructure() {
 
   //file input text
@@ -42,6 +51,7 @@ int buildWordSearchStructure() {
 
   while (fgets(buffer, sizeof(buffer), file) != NULL) {
 
+    trimWhitespace(buffer);
     if (buffer[0] == currentChar) {
       Node *nextNode = createNode(buffer);
       //printf("Created new node with word: %s in the %d index of the alphabet array\n", nextNode->word, arrPos);
@@ -110,24 +120,12 @@ void* timerThread(void* arg) {
 
 void search(struct Node* head, char* usersWord) {
   struct Node* current = head;
-  printf("Okay well the first word is uh.. %s\n", head->word);
-  printf("And the word we passed in is %s and we're gonna compare it to %s\n", usersWord, current->word);
   while (current != NULL) {
-    //printf("The current word is %s", current->word);
     if (strcmp(current->word, usersWord) == 0) {
-      printf("holy shit IT WORKED your word was VALID\n");
+      printf("Valid word!\n");
       count++;
     }
     current = current->next;
-  }
-  printf("okay so we looked for the word it had the right starting letter but we couldn't find it\n");
-}
-
-char* trimWhitespace(char* userInput) {
-  char* end = userInput + strlen(userInput) - 1;
-  while (end > userInput && isspace(*end)) {
-    *end = '\0';
-    end--;
   }
 }
 
@@ -150,15 +148,9 @@ void displayTimer() {
         trimWhitespace(userInput);
 
         while (userInput != NULL) {
-          printf("TEST: found user input %s\n", userInput);
           if (userInput[0] == randomLetter) {
             //check the db
-            printf("TEST: Word began with the right letter. Checkin' the ol db\n");
-            printf("TEST: lets see Paul Allen's singley linked list: %s", alphabet[randomLetter - 'a']->word);
             search(alphabet[randomLetter - 'a'], userInput); 
-          } else {
-            // on to the next word
-            printf("TEST: Word didn't begin with right letter. Not gonna do a damn thing.\n");
           }
           userInput = strtok(NULL, " ");
         }
@@ -173,29 +165,12 @@ void displayTimer() {
   running = 0;
   pthread_join(timer, NULL);
   printf("\nTimes up!\n");
-  return 0;
 }
-
-
-/**
-*
-* I will want to take in user input
-* search the dictionary to make sure the user provided word is valid
-* and do this for an amount of time before ending the test and returning
-* the users score. Maybe that score can be added to a file with a date
-*
-* I think I could know a word is ready to submit to the dictrionary when they separate with a new line character
-*
-* Need to prompt the user with a random letter at the start
-**/ 
 
 int main() {
   srand(time(NULL));
 
   //TODO 
-  //  Add logic to handle user input 
-  //  Add timer that will automatically end the game 
-  //    when it runs out of time
   //  Add logic to score player (take each entered word and validate its in the wordSearchStructure)
   //  Add logic display the score (Maybe use cool ascii art thing) and save score to DB file 
   //
@@ -209,4 +184,5 @@ int main() {
   displayTimer();
 
   printf("Looks like you typed %d words\n", count);
-  return 0; }
+  return 0; 
+}
