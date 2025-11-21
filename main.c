@@ -5,6 +5,11 @@
 #include <pthread.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <stdbool.h>
+
+#define ANSI_COLOR_RED    "\x1b[31m"
+#define ANSI_COLOR_GREEN  "\x1b[32m"
+#define ANSI_COLOR_RESET  "\x1b[0m"
 
 //Linked list
 typedef struct Node {
@@ -13,6 +18,7 @@ typedef struct Node {
 } Node;
 
 Node* alphabet[26] = {NULL};
+char* usedWords[50];
 int timeLeft = 60;
 int running = 1;
 char randomLetter;
@@ -24,6 +30,14 @@ Node *createNode(char *word) {
   newNode->next = NULL;
 
   return newNode;
+}
+
+char* toLowerString(char* userInput) {
+  int i = 0;
+  while (userInput[i] != '\0') {
+    userInput[i] = tolower(userInput[i]);
+    i++;
+  }
 }
 
 char* trimWhitespace(char* userInput) {
@@ -54,25 +68,21 @@ int buildWordSearchStructure() {
     trimWhitespace(buffer);
     if (buffer[0] == currentChar) {
       Node *nextNode = createNode(buffer);
-      //printf("Created new node with word: %s in the %d index of the alphabet array\n", nextNode->word, arrPos);
       currentNode->next = nextNode;
       currentNode = nextNode;
-      //alphabet[arrPos] = nextNode;
     } else {
-      //New char, need to load these into next aray index
       currentChar = buffer[0];
+
       //calculating the position by subtracting a.
       //ASCII val works out to a-a = 0, b-a = 1, etc
       arrPos = buffer[0] - 'a';
-
       currentNode = createNode(buffer);
-      //printf("Created new node with word: %s in the %d index of the alphabet array\n", nextNode->word, arrPos);
       alphabet[arrPos] = currentNode;
     }
   }
 
   if(feof(file)) {
-    //printf("End of file reached.\n");
+    printf("Lets play!.\n");
   } else if (ferror(file)) {
     printf("An error occured.\n");
   }
@@ -82,8 +92,6 @@ int buildWordSearchStructure() {
 }
 
 char getRandLetter() {
-  //Could just gen a random number from .. ascii a to ascii z?
-  // then translate that int into a char
   int lower_bound = 97;
   int upper_bound = 122;
 
@@ -93,6 +101,7 @@ char getRandLetter() {
   return randomLetter; 
 }
 
+//TODO Not needed.
 void buildWithSpinner() {
   char spinChars[] = {'|', '/', '-', '\\'};
   int spinIdx = 0;
@@ -120,10 +129,32 @@ void* timerThread(void* arg) {
 
 void search(struct Node* head, char* usersWord) {
   struct Node* current = head;
+  bool alreadyGuessed;
+
+  //TODO Honestly might be worth adding the alreadyGuessed check here, so I 
+  //don't check O(n) entries of the linked list before finding the word was already guessed
+
   while (current != NULL) {
+    alreadyGuessed = false; 
     if (strcmp(current->word, usersWord) == 0) {
-      printf("Valid word!\n");
-      count++;
+      
+      for (int i = 0; i < count; i++) {
+        if (strcmp(usersWord, usedWords[i]) == 0) {
+          printf(ANSI_COLOR_RED "%s was already guessed! Try again.\n" ANSI_COLOR_RESET, usersWord);
+          alreadyGuessed = true;
+          break;
+        }
+      }
+
+      if (!alreadyGuessed) {
+        printf(ANSI_COLOR_GREEN "Valid word!\n" ANSI_COLOR_RESET);
+        count++;
+        // Bug existed here. Original code set usedWords[0] to usersWord
+        // which pointed to the same buffer each time.
+        // So after one duplicate guess, every guess afterwards
+        // existed in the usedWords array. Fix: use strdup to create a copy
+        usedWords[count - 1] = strdup(usersWord);
+      }
     }
     current = current->next;
   }
@@ -145,6 +176,7 @@ void displayTimer() {
       input[strcspn(input, "\n")] = 0;
       if (strlen(input) > 0 && running) {
         char *userInput = strtok(input, " ");
+        toLowerString(userInput);
         trimWhitespace(userInput);
 
         while (userInput != NULL) {
@@ -176,7 +208,6 @@ int main() {
   //
   //  Add logic to keep track of valid guesses and check them to prevent multiple of the same guess
   buildWordSearchStructure();
-  buildWithSpinner();
   printf("\nYour letter is.....\n");
   usleep(900000);
   printf("\n\t%c\n", getRandLetter());
