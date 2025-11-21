@@ -199,14 +199,85 @@ void displayTimer() {
   printf("\nTimes up!\n");
 }
 
+int checkScores() {
+  FILE *scoreFile = fopen("high_scores.txt", "r+");
+  char scoreBuffer[35];
+
+  printf("Checking score...");
+  
+  if (scoreFile == NULL) {
+    printf("Failed to open or create the high scores file.\n");
+    return 1;
+  }
+
+  int arrPos = 0;
+  int* scoreAlphabet[26] = {0};
+  bool foundOldScore = false;
+  int i = 0;
+
+  while (fgets(scoreBuffer, sizeof(scoreBuffer), scoreFile) != NULL) {
+    printf("am I even in here? HELLO?\n");
+    //load the scoreAlphabet arr to be used to populate the high score file
+    //trimWhitespace(buffer);
+    arrPos = scoreBuffer[0] - 'a';
+    int actualValue = scoreBuffer[3] - '0';
+
+    printf("scorebuffer[0]: %c == randomLetter: %c is evaluating to: %b", scoreBuffer[0], randomLetter, scoreBuffer == randomLetter);
+    printf("count: %d > actualValue %d is evaluating to: %b", count, actualValue, count > actualValue);
+   
+    printf("scorebuffer[0] = '%c' (ASCII: %d)\n", scoreBuffer[0], scoreBuffer[0]);
+    printf("randomLetter = '%c' (ASCII: %d)\n", randomLetter, randomLetter);
+    printf("Are they equal? %d\n", scoreBuffer[0] == randomLetter);
+
+    printf("Found this in buffer[3]: %d for buffer[0] %d\n", actualValue, scoreBuffer[0]);
+    if (scoreBuffer[0] == randomLetter) {
+      printf("Found entry for %s, writing new score of %d in place of buffer[3]\n", scoreBuffer[0], count, actualValue);
+      if (count > actualValue) {
+        scoreAlphabet[arrPos] = count;
+      }
+      foundOldScore = true;
+    } else {
+      scoreAlphabet[arrPos] = actualValue;
+    }
+  }
+
+
+  printf("Found.... nothing in the file??? I guess????\n");
+
+  fflush(scoreFile);
+  while (i < 26) {
+    printf("Building high score file\n");
+    int score;
+    if (scoreAlphabet[i] != 0) {
+      printf("Found scoreAlphabet[%d] of %d\n", i, scoreAlphabet[i]);
+      score = (int) scoreAlphabet[i];
+    } else {
+      printf("Found scoreAlphabet[%d] of null I guess?\n", i, scoreAlphabet[i]);
+      score = 0;
+    }
+    printf("Attempting to write to the file with values i + 'a' == %d and score == %d\n", i + 'a', score);
+
+    fprintf(scoreFile, "%c\t %d\n", i + 'a', score);
+    i++;
+  }
+  
+  if(feof(scoreFile)) {
+    if(!foundOldScore){
+      printf("Updated high score for: %c\n", randomLetter);
+    }
+  } else if (ferror(scoreFile)) {
+    printf("An error occured.\n");
+  }
+
+  fclose(scoreFile);
+  return 0;
+}
+
 int main() {
   srand(time(NULL));
 
   //TODO 
   //  Add logic to score player (take each entered word and validate its in the wordSearchStructure)
-  //  Add logic display the score (Maybe use cool ascii art thing) and save score to DB file 
-  //
-  //  Add logic to keep track of valid guesses and check them to prevent multiple of the same guess
   buildWordSearchStructure();
   printf("\nYour letter is.....\n");
   usleep(900000);
@@ -215,5 +286,9 @@ int main() {
   displayTimer();
 
   printf("Looks like you typed %d words\n", count);
+
+  //write to a high score file.
+  //Should probably read the scores in, and for the current letter, update if new score > old score
+  checkScores();
   return 0; 
 }
